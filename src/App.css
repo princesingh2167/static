@@ -1,0 +1,32 @@
+@import "tailwindcss";
+
+@font-face {
+    font-family: "TheSeasons";
+    src: url("/fonts/TheSeasons-Reg.otf") format("opentype");
+    font-weight: normal;
+    font-style: normal;
+  }
+
+
+  @font-face {
+    font-family: "Satoshi";
+    src: url("/fonts/Satoshi-Regular.ttf") format("opentype"),
+         url("/fonts/Satoshi-Regular.ttf") format("opentype");
+    font-weight: normal;
+    font-style: normal;
+  }
+
+  @layer utilities {
+    .font-heading {
+      font-family: "TheSeasons", serif;
+    }
+    .font-body {
+      font-family: "Satoshi", sans-serif;
+    }
+  }
+
+  .custom-phone-input{
+    border: none !important;
+    outline: none !important;
+    box-shadow: none !important;
+  }
