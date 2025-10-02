@@ -5,12 +5,23 @@ import "react-phone-number-input/style.css";
 import type { E164Number } from "libphonenumber-js/core";
 import axios from "axios";
 
+interface SubAgenda {
+  subAgendaId: number;
+  title: string;
+  agendaId: number;
+  order: number;
+  mail: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 interface Agenda {
   agendaId: number;
   title: string;
-  mail: boolean;
+  mail: string;
   createdAt: string;
   updatedAt: string;
+  subAgendas?: SubAgenda[];
 }
 
 interface MeetingRequestFormProps {
@@ -23,7 +34,7 @@ const MeetingRequestForm = ({
   onFormSubmit,
 }: MeetingRequestFormProps) => {
   const [attendees, setAttendees] = useState([
-    { fullName: "", email: "", department: "" },
+    { name: "", email: "", department: "" },
   ]);
   const [formData, setFormData] = useState({
     fullName: "",
@@ -34,11 +45,12 @@ const MeetingRequestForm = ({
     meetingAgenda: "",
     date: "",
     selectedAgenda: "",
+    selectedSubAgenda: "",
   });
 
   const handleAddAttendee = () => {
     if (attendees.length < 4) {
-      setAttendees([...attendees, { fullName: "", email: "", department: "" }]);
+      setAttendees([...attendees, { name: "", email: "", department: "" }]);
     }
   };
 
@@ -73,6 +85,15 @@ const MeetingRequestForm = ({
       ...prevFormData,
       selectedAgenda: selectedAgendaId,
       meetingAgenda: selectedAgenda ? selectedAgenda.title : "",
+      selectedSubAgenda: "",
+    }));
+  };
+
+  const handleSubAgendaChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const selectedSubAgendaId = e.target.value;
+    setFormData((prevFormData) => ({
+      ...prevFormData,
+      selectedSubAgenda: selectedSubAgendaId,
     }));
   };
 
@@ -82,6 +103,10 @@ const MeetingRequestForm = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    const selectedAgendaObj = agendas.find(
+      (agenda) => agenda.agendaId === parseInt(formData.selectedAgenda)
+    );
 
     // Basic validation
     if (
@@ -93,31 +118,31 @@ const MeetingRequestForm = ({
       !formData.date ||
       !formData.selectedAgenda ||
       !formData.meetingAgenda ||
-      attendees.some((attendee) => !attendee.fullName || !attendee.email) // Validate attendees
+      ((selectedAgendaObj?.subAgendas?.length || 0) > 0 &&
+        !formData.selectedSubAgenda) ||
+      attendees.some((attendee) => !attendee.name || !attendee.email) // Validate attendees
     ) {
       alert("Please fill in all required fields.");
       return;
     }
 
     const payload = {
-      requesterName: formData.fullName,
-      requesterEmail: formData.email,
-      title: formData.meetingAgenda,
-      organisation: formData.organization,
-      requesterDesignation: "Laborum nobis adipis", // Hardcoded from user's payload
-      requesterPhone: formData.phoneNumber,
-      description: formData.meetingAgenda,
-      preferredDate: formData.date,
-      preferredTime: "02:30:00", // Hardcoded from user's payload
+      fullName: formData.fullName,
+      email: formData.email,
+      title: formData.title,
+      organization: formData.organization,
+      phoneNumber: formData.phoneNumber,
+      date: formData.date,
+      sendEmail: true,
+      agendaId: parseInt(formData.selectedAgenda),
+      subAgendaId: formData.selectedSubAgenda
+        ? parseInt(formData.selectedSubAgenda)
+        : undefined,
       attendees: attendees.map((attendee) => ({
-        fullName: attendee.fullName,
+        name: attendee.name,
         email: attendee.email,
         department: attendee.department,
       })),
-      additionalNotes: "", // Not explicitly in form, so empty string
-      requestStatus: "REQUESTED",
-      plantId: "8b104d74-0548-4d7f-84ad-b90db43e5340", // Hardcoded from user's payload
-      agendaId: parseInt(formData.selectedAgenda), // Add agendaId from form
     };
 
     console.log("Payload:", payload);
@@ -134,6 +159,10 @@ const MeetingRequestForm = ({
       alert("Failed to send meeting request. Please try again.");
     }
   };
+
+  const selectedAgendaForRender = agendas.find(
+    (a) => a.agendaId === parseInt(formData.selectedAgenda)
+  );
 
   return (
     <form
@@ -189,7 +218,7 @@ const MeetingRequestForm = ({
           }}
           className="custom-phone-input"
         />
-           <input
+        <input
           type="date"
           placeholder="Date"
           name="date"
@@ -216,6 +245,37 @@ const MeetingRequestForm = ({
         </div>
       </div>
 
+      {formData.selectedAgenda && (
+        <div className="flex flex-wrap justify-between mt-6 gap-y-4">
+          <div className="w-full">
+            <select
+              name="selectedSubAgenda"
+              value={formData.selectedSubAgenda}
+              onChange={handleSubAgendaChange}
+              disabled={
+                !(
+                  selectedAgendaForRender?.subAgendas &&
+                  selectedAgendaForRender.subAgendas.length > 0
+                )
+              }
+              className="w-full py-2 border-0 border-b border-b-[#222222] focus:outline-none focus:ring-0"
+            >
+              <option value="">
+                {selectedAgendaForRender?.subAgendas &&
+                selectedAgendaForRender.subAgendas.length > 0
+                  ? "Select Sub Agenda"
+                  : "No sub-agenda available"}
+              </option>
+              {selectedAgendaForRender?.subAgendas?.map((sub) => (
+                <option key={sub.subAgendaId} value={sub.subAgendaId}>
+                  {sub.title}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+      )}
+
       <h2 className="font-heading mt-18 text-[28px]">Attendees</h2>
       {attendees.map((attendee, index) => (
         <div
@@ -226,9 +286,9 @@ const MeetingRequestForm = ({
             type="text"
             placeholder="Name"
             className="w-full md:w-[200px] py-2 border-0 border-b border-b-[#222222] focus:outline-none focus:ring-0 placeholder:text-[#222222]"
-            value={attendee.fullName}
+            value={attendee.name}
             onChange={(e) =>
-              handleAttendeeChange(index, "fullName", e.target.value)
+              handleAttendeeChange(index, "name", e.target.value)
             }
           />
           <input
