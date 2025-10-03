@@ -10,7 +10,7 @@ interface SubAgenda {
   title: string;
   agendaId: number;
   order: number;
-  mail: string;
+  mail: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -18,7 +18,7 @@ interface SubAgenda {
 interface Agenda {
   agendaId: number;
   title: string;
-  mail: string;
+  mail: boolean;
   createdAt: string;
   updatedAt: string;
   subAgendas?: SubAgenda[];

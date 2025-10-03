@@ -17,7 +17,7 @@ interface Agenda {
   mail: boolean;
   createdAt: string;
   updatedAt: string;
-  subAgendas: SubAgenda[];
+  subAgendas?: SubAgenda[];
 }
 
 const MeetingRequest = () => {
